@@ -10,7 +10,7 @@ from google.colab import files
 import json
 
 # Указываем ссылку на репозиторий модели на Hugging Face
-BASE_MODEL_REPO_URL = "https://huggingface.co/MisterHolY/Unloked_Model-Mistral.7-B"  # Ссылка на твою модель Hugging Face
+BASE_MODEL_REPO_URL = "MisterHolY/Unloked_Model-Mistral.7-B"  # Ссылка на твою модель Hugging Face
 MERGED_MODEL_PATH = "/content/merged_model"  # Путь для сохранения объединённой модели
 
 # Загружаем модель из Hugging Face
