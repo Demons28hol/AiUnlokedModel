@@ -13,23 +13,29 @@ import json
 BASE_MODEL_REPO_URL = "MisterHolY/Unloked_Model-Mistral.7-B"  # Ссылка на твою модель Hugging Face
 MERGED_MODEL_PATH = "/content/merged_model"  # Путь для сохранения объединённой модели
 
-# Загружаем модель из Hugging Face
-print("🔄 Загружаем модель из репозитория Hugging Face...")
-base_model = None
-for attempt in range(3):  # Попробуем несколько раз
-    try:
-        # Загружаем только конфигурацию модели
-        config = AutoConfig.from_pretrained(BASE_MODEL_REPO_URL)  # Загружаем конфигурацию модели
-        base_model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_REPO_URL, config=config)  # Загружаем модель с весами
-        print("✅ Модель успешно загружена.")
-        break
-    except RuntimeError as e:
-        print(f"❌ Ошибка при загрузке модели: {e}")
-        if attempt < 2:
-            print("🔄 Повторная попытка через 5 секунд...")
-            sleep(5)
-        else:
-            print("⚠️ Все попытки загрузки модели не увенчались успехом. Переход к следующему шагу.")
+# Попытки загрузить модель с учётом ошибок
+def load_model_with_retry():
+    attempt = 0
+    max_attempts = 3
+    while attempt < max_attempts:
+        try:
+            print("🔄 Загружаем модель из репозитория Hugging Face...")
+            config = AutoConfig.from_pretrained(BASE_MODEL_REPO_URL)
+            tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_REPO_URL)
+            model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_REPO_URL)
+            print("✅ Модель успешно загружена.")
+            return model, tokenizer
+        except Exception as e:
+            print(f"❌ Ошибка при загрузке модели: {e}")
+            if attempt < max_attempts - 1:
+                print("🔄 Повторная попытка через 5 секунд...")
+                sleep(5)
+            attempt += 1
+    print("⚠️ Все попытки загрузки модели не увенчались успехом.")
+    return None, None
+
+# Загружаем модель и токенизатор
+base_model, tokenizer = load_model_with_retry()
 
 # Если модель не загружена, завершаем выполнение
 if base_model is None:
@@ -97,11 +103,13 @@ except Exception as e:
 
 # Обучение LoRA адаптера
 print("📚 Начинаем обучение LoRA адаптера...")
-tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_REPO_URL)
+
 def preprocess_function(examples):
     return tokenizer(examples['text'], padding="max_length", truncation=True)
+
 train_dataset = dataset.map(preprocess_function, batched=True)
 
+# Настройка параметров обучения
 training_args = TrainingArguments(
     output_dir="./results", 
     evaluation_strategy="epoch", 
